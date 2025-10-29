@@ -1,1 +1,79 @@
-model_batchnorm/weights-50x12P5x100_bnorm-checkpoints/
+# ==========================
+# Smart-Pixels ML .gitignore
+# ==========================
+
+# --------------------------
+# Data & intermediate files
+# --------------------------
+datasets/
+*.parquet
+*.tfrecord
+*.h5
+*.hdf5
+*.zip
+*.csv
+*.npz
+*.npy
+
+# --------------------------
+# Model outputs & logs
+# --------------------------
+logs/
+*.log
+model_batchnorm/
+*.ckpt
+*.pb
+*.pth
+*.pt
+*.onnx
+
+# --------------------------
+# Temporary, cache & system files
+# --------------------------
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.swp
+.DS_Store
+Thumbs.db
+
+# --------------------------
+# Jupyter notebook files
+# --------------------------
+.ipynb_checkpoints/
+*.nbconvert.ipynb
+*.nbconvert.html
+
+# --------------------------
+# Virtual environments
+# --------------------------
+venv/
+.env/
+.venv/
+env/
+ENV/
+
+# --------------------------
+# IDE / Editor settings
+# --------------------------
+.vscode/
+.idea/
+*.code-workspace
+
+# --------------------------
+# Web or documentation assets
+# --------------------------
+*.html
+*.css
+*.js
+*.json
+*.map
+*.ico
+*.svg
+site/
+docs/
+
+# --------------------------
+# Cluster / system artifacts
+# --------------------------
