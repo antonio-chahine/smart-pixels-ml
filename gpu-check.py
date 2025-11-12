@@ -6,5 +6,4 @@ if gpus:
     for gpu in gpus:
         print("  •", gpu)
 else:
-    print("❌ No GPUs detected by TensorFlow.")
-
+    print("No GPUs detected by TensorFlow.")
