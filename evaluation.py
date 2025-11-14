@@ -1,96 +1,85 @@
 
-# Read the results
-test_result = pd.read_csv("/work/submit/anton100/msci-project/smart-pixels-ml/outfile_3e778b82/evaluation_results_weights.01-t-353.70-v-537.08.csv")
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from pathlib import Path
+from tensorflow.keras.models import load_model
+from OptimizedDataGenerator_v2 import OptimizedDataGenerator
+from models import CreateModel
+
+epochs = 200
+batch_size = 5000
+learning_rate = 0.001
+early_stopping_patience = 50
+shape = (13, 21, 2)
 
 
-# Calculate residuals
-test_result['residual_x'] = test_result['xtrue'] - test_result['x']
-test_result['residual_y'] = test_result['ytrue'] - test_result['y']
-test_result['residual_cotA'] = test_result['cotAtrue'] - test_result['cotA']
-test_result['residual_cotB'] = test_result['cotBtrue'] - test_result['cotB']
+stamp = "2ts5000"
+base_path = f"/ceph/submit/data/user/a/anton100/tfrecords_{stamp}"
 
-# Set up the figure
-fig, axes = plt.subplots(2, 4, figsize=(20, 10))
-fig.suptitle('Model Predictions vs Ground Truth', fontsize=16)
+tfrecords_train = f"{base_path}/train"
+tfrecords_val   = f"{base_path}/val"
+tfrecords_test  = f"{base_path}/test"
 
-# Plot 1: x prediction vs true
-axes[0, 0].scatter(test_result['xtrue'], test_result['x'], alpha=0.3, s=1)
-axes[0, 0].plot([test_result['xtrue'].min(), test_result['xtrue'].max()], 
-                [test_result['xtrue'].min(), test_result['xtrue'].max()], 'r--', lw=2)
-axes[0, 0].set_xlabel('True x')
-axes[0, 0].set_ylabel('Predicted x')
-axes[0, 0].set_title('x-midplane')
+checkpoint_directory = Path(f"./checkpoints_{stamp}")
 
-# Plot 2: y prediction vs true
-axes[0, 1].scatter(test_result['ytrue'], test_result['y'], alpha=0.3, s=1)
-axes[0, 1].plot([test_result['ytrue'].min(), test_result['ytrue'].max()], 
-                [test_result['ytrue'].min(), test_result['ytrue'].max()], 'r--', lw=2)
-axes[0, 1].set_xlabel('True y')
-axes[0, 1].set_ylabel('Predicted y')
-axes[0, 1].set_title('y-midplane')
+test_generator = OptimizedDataGenerator(
+    load_from_tfrecords_dir = tfrecords_test,
+    shuffle = False,
+    seed = 13,
+    quantize = False
+)
 
-# Plot 3: cotA prediction vs true
-axes[0, 2].scatter(test_result['cotAtrue'], test_result['cotA'], alpha=0.3, s=1)
-axes[0, 2].plot([test_result['cotAtrue'].min(), test_result['cotAtrue'].max()], 
-                [test_result['cotAtrue'].min(), test_result['cotAtrue'].max()], 'r--', lw=2)
-axes[0, 2].set_xlabel('True cotAlpha')
-axes[0, 2].set_ylabel('Predicted cotAlpha')
-axes[0, 2].set_title('cotAlpha')
+# --------------------------------------------------------
+#  SELECT FINAL WEIGHTS
+# --------------------------------------------------------
+weights_path = sorted(checkpoint_directory.glob("weights*.hdf5"))[-1]
+print(f"Using final weights: {weights_path}")
 
-# Plot 4: cotB prediction vs true
-axes[0, 3].scatter(test_result['cotBtrue'], test_result['cotB'], alpha=0.3, s=1)
-axes[0, 3].plot([test_result['cotBtrue'].min(), test_result['cotBtrue'].max()], 
-                [test_result['cotBtrue'].min(), test_result['cotBtrue'].max()], 'r--', lw=2)
-axes[0, 3].set_xlabel('True cotBeta')
-axes[0, 3].set_ylabel('Predicted cotBeta')
-axes[0, 3].set_title('cotBeta')
 
-# Plot 5-8: Residual distributions
-axes[1, 0].hist(test_result['residual_x'], bins=100, edgecolor='black', alpha=0.7)
-axes[1, 0].set_xlabel('Residual')
-axes[1, 0].set_ylabel('Frequency')
-axes[1, 0].set_title(f'x Residuals (μ={test_result["residual_x"].mean():.4f}, σ={test_result["residual_x"].std():.4f})')
-axes[1, 0].axvline(0, color='r', linestyle='--', lw=2)
+# --------------------------------------------------------
+#  EVALUATION
+# --------------------------------------------------------
+outfile_directory = Path(f"./outfile_{stamp}")
+outfile_directory.mkdir(parents=True, exist_ok=True)
 
-axes[1, 1].hist(test_result['residual_y'], bins=100, edgecolor='black', alpha=0.7)
-axes[1, 1].set_xlabel('Residual')
-axes[1, 1].set_ylabel('Frequency')
-axes[1, 1].set_title(f'y Residuals (μ={test_result["residual_y"].mean():.4f}, σ={test_result["residual_y"].std():.4f})')
-axes[1, 1].axvline(0, color='r', linestyle='--', lw=2)
+outfile_name = f"evaluation_{weights_path.stem}.csv"
+outfile_path = outfile_directory / outfile_name
 
-axes[1, 2].hist(test_result['residual_cotA'], bins=100, edgecolor='black', alpha=0.7)
-axes[1, 2].set_xlabel('Residual')
-axes[1, 2].set_ylabel('Frequency')
-axes[1, 2].set_title(f'cotA Residuals (μ={test_result["residual_cotA"].mean():.4f}, σ={test_result["residual_cotA"].std():.4f})')
-axes[1, 2].axvline(0, color='r', linestyle='--', lw=2)
+# Load best model
+model = CreateModel(shape=shape, n_filters=5, pool_size=3)
+model.load_weights(weights_path)
 
-axes[1, 3].hist(test_result['residual_cotB'], bins=100, edgecolor='black', alpha=0.7)
-axes[1, 3].set_xlabel('Residual')
-axes[1, 3].set_ylabel('Frequency')
-axes[1, 3].set_title(f'cotB Residuals (μ={test_result["residual_cotB"].mean():.4f}, σ={test_result["residual_cotB"].std():.4f})')
-axes[1, 3].axvline(0, color='r', linestyle='--', lw=2)
+# Predict
+p_test = model.predict(test_generator)
 
-plt.tight_layout()
-plt.show()
+# Collect true labels
+complete_truth = None
+for _, y in test_generator:
+    if complete_truth is None:
+        complete_truth = y
+    else:
+        complete_truth = np.concatenate((complete_truth, y), axis=0)
 
-# Print summary statistics
-print("\n=== Summary Statistics ===")
-print(f"\nx-midplane:")
-print(f"  Mean residual: {test_result['residual_x'].mean():.6f}")
-print(f"  Std residual:  {test_result['residual_x'].std():.6f}")
-print(f"  RMSE:          {np.sqrt((test_result['residual_x']**2).mean()):.6f}")
+# Build results table
+df = pd.DataFrame(
+    p_test,
+    columns=['x','M11','y','M22','cotA','M33','cotB','M44',
+             'M21','M31','M32','M41','M42','M43']
+)
 
-print(f"\ny-midplane:")
-print(f"  Mean residual: {test_result['residual_y'].mean():.6f}")
-print(f"  Std residual:  {test_result['residual_y'].std():.6f}")
-print(f"  RMSE:          {np.sqrt((test_result['residual_y']**2).mean()):.6f}")
+df["xtrue"], df["ytrue"], df["cotAtrue"], df["cotBtrue"] = complete_truth.T
 
-print(f"\ncotAlpha:")
-print(f"  Mean residual: {test_result['residual_cotA'].mean():.6f}")
-print(f"  Std residual:  {test_result['residual_cotA'].std():.6f}")
-print(f"  RMSE:          {np.sqrt((test_result['residual_cotA']**2).mean()):.6f}")
+# Clamp matrix diagonals ≥ 0
+for m in ["M11","M22","M33","M44"]:
+    df[m] = np.maximum(df[m], 1e-9)
 
-print(f"\ncotBeta:")
-print(f"  Mean residual: {test_result['residual_cotB'].mean():.6f}")
-print(f"  Std residual:  {test_result['residual_cotB'].std():.6f}")
-print(f"  RMSE:          {np.sqrt((test_result['residual_cotB']**2).mean()):.6f}")
+# Residuals
+df["residual_x"] = df["xtrue"] - df["x"]
+df["residual_y"] = df["ytrue"] - df["y"]
+df["residual_A"] = df["cotAtrue"] - df["cotA"]
+df["residual_B"] = df["cotBtrue"] - df["cotB"]
+
+df.to_csv(outfile_path, index=False)
+
+print(f"✓ Evaluation saved to {outfile_path}")
